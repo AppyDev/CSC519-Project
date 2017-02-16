@@ -1,0 +1,44 @@
+---
+- hosts: checkboxio  
+  become: yes
+  become_user: root
+  vars: 
+    git_repo: 'https://github.ncsu.edu/akpatil/CSC519-Project.git'
+    project_path: '/home/vagrant'
+    deploy_user: vagrant
+    dependencies: 
+          - 'git'
+          - 'nodejs-legacy'
+          - 'npm'
+          - 'mongodb'
+          - 'python-pip'
+
+  tasks:   
+    - name: apt update
+      become_user: root
+      command: sudo apt-get update
+        
+    - name: Install dependencies
+      apt: name={{ item }} state=present
+      with_items: "{{ dependencies }}"
+
+    - name: Install the latest pymongo package
+      pip: name=pymongo state=latest use_mirrors=no
+
+    - name: Create user
+      mongodb_user:
+        database: admin
+        name: admin
+        password: admin
+        state: present
+    
+    - name: clone a repository
+      git: 
+        repo: https://github.com/AppyDev/CSC519-Project.git
+        dest: /home/vagrant/CSC519-Project
+
+    - name: npm install
+      command: chdir=CSC519-Project/checkbox.io/server-side/site npm install
+
+    - name: Run checkbox.io
+      command: chdir=CSC519-Project/checkbox.io/server-side/site node server.js
